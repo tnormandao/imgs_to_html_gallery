@@ -192,7 +192,8 @@
                 </style>
               </head>
               <body>
-                <input id="slide" style="width: 768px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><span id="frame_counter"></span><br>
+                <input id="slide" style="width: 768px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><span id="frame_counter"></span>
+                <button id="play_frames">play</button> | fps: <input value="1" id="frame_per_second" type="number" min="0.1" max="60" step="0.1" /><br>
                 <div style="width:1282px;">
                   <div id="text_info">
                     <textarea class="info_area" id="text_positive"></textarea>
@@ -207,7 +208,10 @@
                   const f = FRAMES_JSON;
                   const t = TEXT_JSON;
                   const $$ = (id) => { return document.getElementById( id ); };
-                  const setFrame = ( frameIndex ) => {
+                  let CURRENT_FRAME = 0;
+                  const setFrame = ( frameIndex, updateSlider ) => {
+                    CURRENT_FRAME = frameIndex;
+                    $$('slide').value = ( frameIndex + 1 ) / f.length;
                     $$('display').src = f[ frameIndex ]; 
                     $$('text_positive').innerText = t[ frameIndex ].positive;
                     $$('text_negative').innerText = t[ frameIndex ].negative;
@@ -215,11 +219,40 @@
                     $$('frame_counter').innerText = (1 + frameIndex) + ' : ' + f.length;
                   };
                   window.onload = ()=> { 
-                    setFrame(0);
+                    setFrame( CURRENT_FRAME );
                     $$('slide').addEventListener( 'input', () => { 
                       const frameIndex = Math.floor( f.length * $$('slide').value );
                       setFrame(frameIndex);
                     } ); 
+                    const player = {
+                      active: false,
+                      speed: 1,
+                      player: null,
+                      play: function(){
+                        this.active = !this.active;
+                        if( this.active ){
+                          $$('play_frames').innerText = 'pause';
+                          this.speed = $$('frame_per_second').value;
+                          this.next();
+                        } else {
+                          $$('play_frames').innerText = 'play';
+                          if( this.player ) clearTimeout( this.player );
+                        }
+                      },
+                      next: function(){
+                        this.speed = $$('frame_per_second').value;
+                        const nextInterval = 1000 / this.speed;
+                        this.player = setTimeout( () => {
+                          if( CURRENT_FRAME + 1 < f.length ){
+                            setFrame( CURRENT_FRAME + 1, true );
+                            this.next();
+                          } else {
+                            this.play();
+                          }
+                        }, nextInterval );
+                      }
+                    };
+                    $$('play_frames').addEventListener( 'click', () => { player.play() } );
                   };
                 </SCRPT>
               </body>
