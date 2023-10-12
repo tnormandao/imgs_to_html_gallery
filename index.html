@@ -1,14 +1,51 @@
 <html>
   <head>
     <style>
+      body{
+        font-family: monospace;
+      }
+      #inspect_gallery{
+        width: 1280px; 
+        height: 600px; 
+        border: 1px solid #333; 
+        overflow-y: scroll;
+      }
+      .editable_container{
+        margin: 10px 0px;
+        position: relative;
+        width: 1255px;
+        height: 386px;
+        display: inline-block;
+        clear: left;
+      }
+      .editable_img{
+        max-width: 740px;
+        height: 386px;
+        float: left;
+      }
+      .editable__prompt_container{
+        position: absolute;
+        right: 0;
+        width: 513px;
+      }
+      .editable_pos, .editable_neg, .editable_cfg{
+        width: 512px;
+        height: 128px;
+      }
     </style>
   </head>
   <body>
-    <h1> Convert images into singlie ".html" file gallery </h1>
-    <h3 style="color:#ccc;"> also will save metadata from a1111 | ComfyUI generated files </h3>
-    chose result jpg quality: <input id="jpg_quality" type="range" min="0.05" max="1" step="0.01" value="0.2"> : <span id="jpg_quality_display"></span><br>
+    <h3 > Convert images into singlie ".html" file gallery </h3>
+    <h4 style="color:#999;"> also will save metadatta from a1111 generated files </h3>
+    chose result jpg quality: <input id="jpg_quality" type="range" min="0.01" max="1" step="0.01" value="0.2"> : <input id="jpg_quality_num" type="number" min="0.01" max="1" step="0.01" value="0.2"><br>
+    <hr>
     select images for pack gallery: <input type="file" id="load_files" multiple/><span id="processed"></span><br>
-    <a href="" id="get_result_gallery" > download result gallery html </a><br>
+    <hr>
+    <a href="" id="get_result_gallery" > download result gallery html </a> | <button id="test_gallery" > test gallery in popup window </button><br>
+    <h3>html_gallery inspector</h3>
+    <h4 style="color:#999;">inspect and edit before download html_gallery</h3>
+    <div style="" id="inspect_gallery">
+    </div>
     <script>
 
         const pngMetadata = new function(){
@@ -206,13 +243,7 @@
 
         window.onload = () => {
 
-          console.log( {
-            HTML_TEMPLATE,
-            pngMetadata,
-          } );
-          
           const $$ = (id) => { return document.getElementById( id ); };
-
 
           const processingCanvas = document.createElement('canvas');
           const processingContext = processingCanvas.getContext('2d');
@@ -222,7 +253,7 @@
             return new Promise( async ( resolveProcessing, rejectProcessing ) => {
               // console.log( nextDataPack );
               const metadata = pngMetadata.splitChunk( nextDataPack.buffer );
-              console.log( metadata );
+              // console.log( metadata );
                let textOptions = {
                 positive: '',
                 negative: '',
@@ -275,7 +306,6 @@
             } );
           };
 
-
           const processFiles = async ( files ) => {
             const baseForWork = [];
             for( const nextFile of files ){
@@ -304,6 +334,89 @@
             }
           };
 
+          let TEMPLATE = '';
+          let WIN_URL = '';
+
+          const updateTemplate = async ( openPopup ) => {
+
+            TEMPLATE = HTML_TEMPLATE + '';
+
+            TEMPLATE = TEMPLATE.replaceAll( 'SCRPT', 'script' );
+            TEMPLATE = TEMPLATE.replace( 'FRAMES_JSON', JSON.stringify( FRAMES_BUFFER_ARRAY, null, 2 ) );
+            TEMPLATE = TEMPLATE.replace( 'TEXT_JSON', JSON.stringify( TEXT_BUFFER_ARRAY, null, 2 ) );
+
+            const galleryBlob = new Blob([ TEMPLATE ], { type: "text/html" });
+
+            WIN_URL = URL.createObjectURL( galleryBlob );
+
+            const a = $$("get_result_gallery");
+            a.href = WIN_URL;
+            a.download = dateNow() + '_gallery.html';
+
+          };
+
+          const openPopup = () => {
+            updateTemplate();
+            const win = window.open( 
+              WIN_URL, 
+              "Title", 
+              "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1280,height=512,top="+(screen.height-400)+",left="+(screen.width-840));
+          }
+
+          const createInspectorModule = ( dataIndex ) => {
+            
+            const container = document.createElement('div');
+            container.classList.add('editable_container');
+
+            const nextImage = new Image();
+            nextImage.src = FRAMES_BUFFER_ARRAY[ dataIndex ];
+            nextImage.classList.add('editable_img');
+            container.appendChild( nextImage );
+
+            const promptContainer = document.createElement('div');
+            promptContainer.classList.add('editable__prompt_container');
+            container.appendChild( promptContainer );
+
+            const posT = document.createElement('textarea');
+            posT.classList.add('editable_pos');
+            posT.value = TEXT_BUFFER_ARRAY[ dataIndex ].positive;
+            posT.addEventListener( 'input', () => { 
+              TEXT_BUFFER_ARRAY[ dataIndex ].positive = posT.value; 
+              // updateTemplate();
+            } );
+            promptContainer.appendChild( posT );
+
+            const negT = document.createElement('textarea');
+            negT.classList.add('editable_neg');
+            negT.value = TEXT_BUFFER_ARRAY[ dataIndex ].negative;
+            negT.addEventListener( 'input', () => { 
+              TEXT_BUFFER_ARRAY[ dataIndex ].negative = negT.value; 
+              // updateTemplate();
+            } );
+            promptContainer.appendChild( negT );
+
+            const cfgT = document.createElement('textarea');
+            cfgT.classList.add('editable_cfg');
+            cfgT.value = TEXT_BUFFER_ARRAY[ dataIndex ].config;
+            cfgT.addEventListener( 'input', () => { 
+              TEXT_BUFFER_ARRAY[ dataIndex ].config = cfgT.value; 
+              // updateTemplate();
+            } );
+            promptContainer.appendChild( cfgT );
+
+
+            return container;
+          };
+
+          $$('test_gallery').addEventListener( 'click', () => {
+            openPopup();
+          } );
+
+          $$("get_result_gallery").addEventListener( 'click', () => {
+            updateTemplate();
+          } );
+
+
           $$('load_files').addEventListener( 'change', async () => { 
             
             FRAMES_BUFFER_ARRAY = [];
@@ -312,36 +425,29 @@
             const files = $$('load_files').files;
             await processFiles( files );
 
-            let TEMPLATE = HTML_TEMPLATE + '';
-            TEMPLATE = TEMPLATE.replaceAll( 'SCRPT', 'script' );
-            TEMPLATE = TEMPLATE.replace( 'FRAMES_JSON', JSON.stringify( FRAMES_BUFFER_ARRAY, null, 2 ) );
-            TEMPLATE = TEMPLATE.replace( 'TEXT_JSON', JSON.stringify( TEXT_BUFFER_ARRAY, null, 2 ) );
+            updateTemplate();
 
-            const galleryBlob = new Blob([ TEMPLATE ], { type: "text/html" });
-
-            const winUrl = URL.createObjectURL( galleryBlob );
-
-            const win = window.open( 
-              winUrl, 
-              "Title", 
-              "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1280,height=512,top="+(screen.height-400)+",left="+(screen.width-840));
-          
-            const a = $$("get_result_gallery");
-            a.href = winUrl;
-            a.download = dateNow() + '_gallery.html';
             $$('load_files').value = null;
 
+            $$( 'inspect_gallery' ).innerHTML = '';
+
+            for( let i = 0; i < FRAMES_BUFFER_ARRAY.length; i++ ){
+              const nextEditableInspectorModule = createInspectorModule( i );
+              $$( 'inspect_gallery' ).appendChild( nextEditableInspectorModule );
+            }
+            
           } ); 
 
-          const updateQualityDisplay = () => {
-            $$( 'jpg_quality_display' ).innerText = $$('jpg_quality').value;
-          };
-
-          $$('jpg_quality').addEventListener( 'input', () => {
-            updateQualityDisplay();
+          $$('jpg_quality_num').addEventListener( 'input', () => {
+            if( $$('jpg_quality_num').value < $$('jpg_quality_num').min ){ $$('jpg_quality_num').value =  $$('jpg_quality_num').min; }
+            if( $$('jpg_quality_num').value > $$('jpg_quality_num').max ){ $$('jpg_quality_num').value =  $$('jpg_quality_num').max; }
+            $$('jpg_quality').value = $$('jpg_quality_num').value;
           } );
 
-          updateQualityDisplay();
+          $$('jpg_quality').addEventListener( 'input', () => {
+            $$('jpg_quality_num').value = $$('jpg_quality').value;
+          } );
+
         }
     </script>
   </body>
