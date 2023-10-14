@@ -207,6 +207,7 @@
     <script>
 
         let CROSSFRAME_TRANSITION_ENABLED = true;
+      
         class MP4_Recorder {
 
           constructor( config = {} ){
@@ -220,6 +221,9 @@
             this.can.width = this.width;
             this.can.height = this.height;
             this.ctx = this.can.getContext('2d');
+
+            this.can2 = document.createElement( 'canvas' );
+            this.ctx2 = this.can2.getContext('2d');
 
             this.videoStream = null;
             this.mediaRecorder = null;
@@ -295,6 +299,7 @@
               transitionCount = Math.floor( currentFrameLength / minimalFrmaeLength );
             }
 
+
             if( !transitionCount ){
               
               const imgOpts = this.calculateSizeProps( img );
@@ -310,6 +315,9 @@
               const imgPrevOpts = this.calculateSizeProps( prevImage );
               const imgOpts = this.calculateSizeProps( img );
 
+              this.can2.width = this.can.width;
+              this.can2.height = this.can.height;
+
               for( let i = 0; i < transitionCount; i++ ){
 
                 const _alpha = i / transitionCount;
@@ -324,13 +332,15 @@
                       imgPrevOpts.x, imgPrevOpts.y, imgPrevOpts.w, imgPrevOpts.h,
                   );
 
-                  this.ctx.globalAlpha = _alpha;
-                  this.ctx.fill = '#000000';
-                  this.ctx.fillRect( 0, 0, this.width, this.height );
-                  this.ctx.drawImage( img,
+                  this.ctx2.fill = '#000000';
+                  this.ctx2.fillRect( 0, 0, this.width, this.height );
+                  this.ctx2.drawImage( img,
                       0, 0, img.width, img.height,
                       imgOpts.x, imgOpts.y, imgOpts.w, imgOpts.h,
                   );
+                  this.ctx.globalAlpha = _alpha;
+                  this.ctx.drawImage( this.can2,
+                      0, 0  );
 
 
                   this.ctx.globalAlpha = 1.0;
@@ -345,6 +355,7 @@
           }
 
         };
+
 
         const pngMetadata = new function(){
 
