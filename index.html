@@ -3,6 +3,16 @@
     <style>
       body{
         font-family: monospace;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: #374151;
+        color: #eee;
+      }
+      .global_container{
+        width: 100%;
+        height: 100%;
+        padding: 10px;
       }
       #inspect_gallery{
         width: 1280px; 
@@ -17,6 +27,8 @@
         height: 386px;
         display: inline-block;
         clear: left;
+        border-top: 1px solid #999999;
+        padding-top: 10px;
       }
       .editable_img{
         max-width: 740px;
@@ -32,21 +44,307 @@
         width: 512px;
         height: 128px;
       }
+      .hidden{ display: none; }
+      .unclickable{
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      #video_recorder_menu{
+        padding: 10px;
+      }
+      #modal_window_1{
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.5 ) ;
+      }
+
+      .modal_window .outer_container{
+        width: 640px;
+        height: 480px;
+        transform: translate( -50%, -50%);
+        background: #374151;
+        border-radius: 5px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        border: 1px #ccc solid;
+      }
+
+      .modal_window .inner_container{
+        width: 640px;
+        height: 480px;
+        position: relative;
+      }
+
+      #processing_line{
+        width: 620px;
+        height: 20px;
+        margin: 10px;
+        position: relative;
+        background-color: #999;
+      }
+
+      #processing_line_inner{
+        height: 20px;
+        background-color:#659eb8 ;
+      }
+
+      #processing_image_container{
+        width: 640px;
+        height: 400px;
+        position: relative;
+      } 
+
+      #processing_image_display, #MP4_Recorder_canvas{
+        max-width: 640px;
+        max-height: 350px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50% );
+      }
+
+      #processing_line_counter{
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 15;
+        transform: translate(-50%, -50% );
+      }
+
+      #modal_window_1_close_button{
+        width: 20px;
+        height: 20px;
+        color: #eee;
+        background: #374151;
+        border: 1px #6a6a6a solid;
+        cursor: pointer;
+        position: absolute;
+        right: 4px;
+        top: -11px;
+        font-size: 25px;
+        text-align: center;
+        line-height: 16px;
+        padding: 5px;
+        border-radius: 5px;
+      }
+      #modal_window_1_close_button:hover{
+        background: #505866;
+      }
+
+      h3{
+        color: #ccc;
+      }
+      
+      a{
+        color: #00ffff;
+      }
+      a:hover{
+        color: #deb887;
+      }
+      a:active{
+        color: #00ffff;
+      }
+
     </style>
   </head>
   <body>
-    <h3 > Convert images into singlie ".html" file gallery </h3>
-    <h4 style="color:#999;"> also will save metadatta from a1111 generated files </h3>
-    chose result jpg quality: <input id="jpg_quality" type="range" min="0.01" max="1" step="0.01" value="0.2"> : <input id="jpg_quality_num" type="number" min="0.01" max="1" step="0.01" value="0.2"><br>
-    <hr>
-    select images for pack gallery: <input type="file" id="load_files" multiple/><span id="processed"></span><br>
-    <hr>
-    <a href="" id="get_result_gallery" > download result gallery html </a> | <button id="test_gallery" > test gallery in popup window </button><br>
-    <h3>html_gallery inspector</h3>
-    <h4 style="color:#999;">inspect and edit before download html_gallery</h3>
-    <div style="" id="inspect_gallery">
+    <div id="modal_window_1" class="modal_window hidden">
+      <div class="outer_container">
+        <div class="inner_container">
+          <div id="modal_window_1_close_button" class="hidden">x</div>
+          <h3 style="width: 100%; text-align: center;">img processing</h3>
+          <div id="processing_line">
+            <div id="processing_line_inner"></div>
+            <div id="processing_line_counter"></div>
+          </div><br>
+          <div id="processing_image_container">        
+            <img id="processing_image_display" src="" alt="">
+            <canvas class="hidden" id="MP4_Recorder_canvas"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
+
+
+    <div class="global_container">
+      <h3 > Convert images into singlie ".html" file gallery </h3>
+      <h4 style="color:#999;"> also will save metadatta from a1111 generated files </h3>
+      chose result jpg quality: 
+      <input id="jpg_quality" type="range" min="0.01" max="1" step="0.01" value="0.2"> : 
+      <input id="jpg_quality_num" type="number" min="0.01" max="1" step="0.01" value="0.2"> |
+      select images for pack gallery: <input type="file" id="load_files" multiple/><br>
+      <hr>
+      to mp4?: <input id="video_recorder_switcher" type="checkbox">
+      <hr>
+      <div id="video_recorder_menu" class="hidden">
+        width: <input type="number" id="record_video_width" value="512" min="256" max="1024" step="1"> 
+        height: <input type="number" id="record_video_height" value="512" min="256" max="1024" step="1"> 
+        frame rate: <input type="number" id="record_video_fps" value="12" min="0.01" max="60" step="0.1"> 
+        <button id="convert_video">convert gallery to mp4</button> <span id="converter_processed_frames"></span><br>
+        <a href="" id="get_result_gallery_mp4" > download result gallery mp4 </a> | 
+        <button id="test_video">test video in popup</button>
+      </div>
+      <h4 style="color:#999;">
+        <a href="" id="get_result_gallery" > download result gallery html </a> | 
+        <button id="test_gallery" > test gallery in popup window </button>
+      </h3>
+      <h3> 
+        html_gallery inspector 
+        <small style="color:#999;"> inspect and edit before download html_gallery </small> 
+        <span id="processed"></span>
+      </h3>
+      <div style="" id="inspect_gallery">
+      </div>
+
+    </div>
+
     <script>
+
+        let CROSSFRAME_TRANSITION_ENABLED = true;
+        class MP4_Recorder {
+
+          constructor( config = {} ){
+
+            this.fps = config.fps || 30;
+
+            this.width = config.width || 768;
+            this.height = config.height || 768;
+
+            this.can = document.getElementById('MP4_Recorder_canvas');
+            this.can.width = this.width;
+            this.can.height = this.height;
+            this.ctx = this.can.getContext('2d');
+
+            this.videoStream = null;
+            this.mediaRecorder = null;
+
+            this.chunks = [];
+
+          }
+
+          init(){
+            this.videoStream = this.can.captureStream(60);
+            this.mediaRecorder = new MediaRecorder(this.videoStream, { mimeType:  'video/webm;codecs=h264' });
+            this.mediaRecorder.width    = this.width;
+            this.mediaRecorder.height   = this.height;
+            this.mediaRecorder.ondataavailable = (e) => { 
+              this.addData(e.data); 
+            }
+            this.mediaRecorder.onstop = function(e) {
+
+            }
+          }
+
+          start(){
+            this.init();
+            this.mediaRecorder.start();
+          }
+
+          stop(){
+            this.mediaRecorder.stop();
+          }
+
+          addData( data ){
+            this.chunks.push(data);
+          }
+
+          finally(){
+            this.stop();
+            return new Promise( ( resolve, reject ) => {
+              setTimeout( () => {
+                const blob = new Blob( this.chunks, {  
+                  // 'type': 'video/webm;codecs=h264'
+                  type: 'video/mp4'
+                 });
+                resolve( blob );
+              }, 100 );
+            });
+          }
+
+          calculateSizeProps( img ){
+
+            const aspect = ( img.width > img.height ) ?  this.width / img.width : this.height / img.height;
+            const imgW = img.width * aspect;
+            const imgH = img.height * aspect;
+            const imgX = ( this.width / 2 ) - ( imgW / 2 );
+            const imgY = ( this.height / 2 ) - ( imgH / 2 );
+
+            return {
+              aspect,
+              x: imgX,
+              y: imgY,
+              w: imgW,
+              h: imgH,
+            }
+
+          }
+
+          async addFrame( img, prevImage ){
+
+            const minimalFrmaeLength = 17;
+            const currentFrameLength = 1000 / this.fps;
+            let transitionCount = 0;
+
+            if( CROSSFRAME_TRANSITION_ENABLED && prevImage ){
+              transitionCount = Math.floor( currentFrameLength / minimalFrmaeLength );
+            }
+
+            if( !transitionCount ){
+              
+              const imgOpts = this.calculateSizeProps( img );
+              this.ctx.fill = '#000000';
+              this.ctx.fillRect( 0, 0, this.width, this.height );
+              this.ctx.drawImage( img,
+                  0, 0, img.width, img.height,
+                  imgOpts.x, imgOpts.y, imgOpts.w, imgOpts.h,
+              );
+
+            } else {
+
+              const imgPrevOpts = this.calculateSizeProps( prevImage );
+              const imgOpts = this.calculateSizeProps( img );
+
+              for( let i = 0; i < transitionCount; i++ ){
+
+                const _alpha = i / transitionCount;
+                
+                await new Promise( ( resolve, reject ) => {
+
+                  this.ctx.globalAlpha = 1.0;
+                  this.ctx.fill = '#000000';
+                  this.ctx.fillRect( 0, 0, this.width, this.height );
+                  this.ctx.drawImage( prevImage,
+                      0, 0, prevImage.width, prevImage.height,
+                      imgPrevOpts.x, imgPrevOpts.y, imgPrevOpts.w, imgPrevOpts.h,
+                  );
+
+                  this.ctx.globalAlpha = _alpha;
+                  this.ctx.fill = '#000000';
+                  this.ctx.fillRect( 0, 0, this.width, this.height );
+                  this.ctx.drawImage( img,
+                      0, 0, img.width, img.height,
+                      imgOpts.x, imgOpts.y, imgOpts.w, imgOpts.h,
+                  );
+
+
+                  this.ctx.globalAlpha = 1.0;
+
+                  setTimeout( () => {
+                    resolve();
+                  }, currentFrameLength / transitionCount );
+                } );
+              }
+            }
+
+          }
+
+        };
 
         const pngMetadata = new function(){
 
@@ -107,17 +405,11 @@
             var pf = metadata.PNG_SIG;
             for (var i in chunklist) {
               var chunk = chunklist[i];
-              // check size
-              // chunk.size = chunk.data.length;
-              // calc crc
-              // var crc_v = crc32(chunk.type + chunk.data);
-              // 
               var buf = "";
               buf += itos(chunk.size, 4);
               buf += chunk.type;
               buf += chunk.data;
               buf += itos(chunk.crc, 4);
-              // console.log("w", chunk.size, chunk.type, ToUInt32(chunk.crc));
               pf += buf;
             }
             return pf;
@@ -181,6 +473,13 @@
         <html>
               <head>
                 <style>
+                  body{
+                    font-family: monospace;
+                    margin: 0;
+                    background: #374151;
+                    color: #eee;
+                    padding: 10px;
+                  }
                   #text_info{
                     width: 512px;
                     float: right;
@@ -205,8 +504,10 @@
                   </div>
                 </div>
                 <SCRPT>
+                  /*DATA_START*/
                   const f = FRAMES_JSON;
                   const t = TEXT_JSON;
+                  /*DATA_END*/
                   const $$ = (id) => { return document.getElementById( id ); };
                   let CURRENT_FRAME = 0;
                   const setFrame = ( frameIndex, updateSlider ) => {
@@ -261,6 +562,8 @@
 
         let FRAMES_BUFFER_ARRAY = [];
         let TEXT_BUFFER_ARRAY = [];
+        let TOTAL_BASIC_SIZE = 0;
+        let TOTAL_SIZE_AFTER_COMPRESS = 0;
 
         function dateNow(){
           const date = new Date();
@@ -284,9 +587,7 @@
 
           const processSinglePicture = async ( nextDataPack, FRAMES_BUFFER_ARRAY, TEXT_BUFFER_ARRAY ) => {
             return new Promise( async ( resolveProcessing, rejectProcessing ) => {
-              // console.log( nextDataPack );
               const metadata = pngMetadata.splitChunk( nextDataPack.buffer );
-              // console.log( metadata );
                let textOptions = {
                 positive: '',
                 negative: '',
@@ -327,6 +628,7 @@
                     );
                     const quality = parseFloat( $$('jpg_quality').value );
                     const nextDataUrl = processingCanvas.toDataURL( "image/jpeg", quality );
+                    TOTAL_SIZE_AFTER_COMPRESS += nextDataUrl.length;
                     FRAMES_BUFFER_ARRAY.push( nextDataUrl );
                     resolveImageConversion();
                   };
@@ -339,14 +641,70 @@
             } );
           };
 
+          // modal_window_1_close_button
+          const ProcessingModalWindow = {
+            window: $$('modal_window_1'),
+            innerLine: $$('processing_line_inner'),
+            imageLineCounter: $$('processing_line_counter'),
+            imageDisplay: $$('processing_image_display'),
+            videoRecorderDisplay: $$('MP4_Recorder_canvas'),
+            processedInfo: $$('processed'),
+            closeButton: $$('modal_window_1_close_button'),
+            totalFrames: 0,
+            currentFrame: 0,
+            options: {}, 
+            prepare: function(){
+              this.closeButton.addEventListener( 'click', () => {
+                this.close(); 
+              });
+            },
+            init: function( totalFrames = 0, options = {} ){
+              this.options = options;
+              this.totalFrames = totalFrames;
+              this.window.classList.remove('hidden');
+              this.closeButton.classList.add('hidden');
+              this.innerLine.style.width = `${0}%`;
+              if( this.options.videorecorder ){
+                this.imageDisplay.classList.add('hidden');
+                this.videoRecorderDisplay.classList.remove('hidden');
+              }
+            },
+            addNext: function( index, image ) {
+              this.currentFrame = index;
+              this.innerLine.style.width = `${ ( index / this.totalFrames ) * 100 }%`;
+              this.imageLineCounter.innerText = index + ' : ' + this.totalFrames;
+              this.processedInfo.innerText = index + ' : ' + this.totalFrames;
+              if( this.options.videorecorder ){
+
+              } else {
+                this.imageDisplay.src = image;
+              }
+            },
+            finish: function(){
+              this.closeButton.classList.remove('hidden');
+            },
+            close: function(){
+              if( this.options.videorecorder ){
+                this.imageDisplay.classList.remove('hidden');
+                this.videoRecorderDisplay.classList.add('hidden');
+              }
+              this.options = {};
+              this.window.classList.add('hidden');
+            }
+          }
+          ProcessingModalWindow.prepare();
+
           const processFiles = async ( files ) => {
             const baseForWork = [];
+            TOTAL_BASIC_SIZE = 0;
+            TOTAL_SIZE_AFTER_COMPRESS = 0;
             for( const nextFile of files ){
               await new Promise( ( resolve, reject ) => {
                 const reader = new FileReader()
                 reader.onload = () => {
                   const buffer = reader.result;
                   const { name, type, size,} = nextFile;
+                  TOTAL_BASIC_SIZE += size;
                   baseForWork.push( {
                     file: nextFile,
                     buffer,
@@ -359,12 +717,15 @@
                 reader.readAsBinaryString( nextFile );
               } );
             }
+            ProcessingModalWindow.init( baseForWork.length );
             let next = 0;
             for( const nextDataPack of baseForWork ){
               const nextData = await processSinglePicture( nextDataPack, FRAMES_BUFFER_ARRAY, TEXT_BUFFER_ARRAY );
               next++;
-              $$('processed').innerText = next + ' : ' + files.length;
+              ProcessingModalWindow.addNext( next, FRAMES_BUFFER_ARRAY[ next - 1 ] );
             }
+            ProcessingModalWindow.finish();
+
           };
 
           let TEMPLATE = '';
@@ -390,10 +751,25 @@
 
           const openPopup = () => {
             updateTemplate();
+            const _width = 1320;
+            const _height = 820;
+            const xPosition = (screen.width/2) - _width/2;
+            const yPosition = (screen.height/2) - _height/2;
             const win = window.open( 
               WIN_URL, 
-              "Title", 
-              "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1280,height=512,top="+(screen.height-400)+",left="+(screen.width-840));
+              ` Compressed Gallery preview ${ dateNow() } `,`
+              toolbar=0,
+              location=0,
+              directories=no,
+              status=0,
+              menubar=0,
+              scrollbars=0,
+              resizable=no,
+              width=${ _width },
+              height=${ _height },
+              top=${yPosition},
+              left=${xPosition}
+              `);
           }
 
           const createInspectorModule = ( dataIndex ) => {
@@ -449,7 +825,6 @@
             updateTemplate();
           } );
 
-
           $$('load_files').addEventListener( 'change', async () => { 
             
             FRAMES_BUFFER_ARRAY = [];
@@ -479,6 +854,113 @@
 
           $$('jpg_quality').addEventListener( 'input', () => {
             $$('jpg_quality_num').value = $$('jpg_quality').value;
+          } );
+
+          let RECORDER_ACTIVE = !!$$('video_recorder_switcher').checked;
+          let VIDEO_SOURCE = null;
+          let VIDEO_BLOB = null;
+          let VIDEO_URL = null;
+          $$('video_recorder_switcher').addEventListener( 'input', () => {
+            RECORDER_ACTIVE = !!$$('video_recorder_switcher').checked;
+            if( RECORDER_ACTIVE ){
+              $$('video_recorder_menu').classList.remove('hidden');
+            } else {
+              $$('video_recorder_menu').classList.add('hidden');
+            }
+          } );
+
+          $$('convert_video').addEventListener( 'click', async () => {
+            if( RECORDER_ACTIVE ){
+
+              const _width = parseInt( $$('record_video_width').value );
+              const _height = parseInt( $$('record_video_height').value );
+              const _fps = parseFloat( $$('record_video_fps').value );
+
+              const nextRecorder = new MP4_Recorder( {
+                width: _width,
+                height: _height,
+                fps: _fps
+              } );
+              if( nextRecorder ){
+                nextRecorder.start();
+                ProcessingModalWindow.init( FRAMES_BUFFER_ARRAY.length, { videorecorder: true } );
+                let processed = 0;
+                let previouseImage = null;
+                for( const nextFrameDataURL of FRAMES_BUFFER_ARRAY ){
+                  await new Promise( ( next, reject ) => {
+                    const _img = new Image();
+                    _img.onload = () => { 
+                      nextRecorder.addFrame( _img, previouseImage );
+                      setTimeout( () => {
+                        processed++;
+                        ProcessingModalWindow.addNext( processed, FRAMES_BUFFER_ARRAY[ processed - 1 ] );
+                        previouseImage = _img;
+                        next();
+                      }, 1000 / _fps );
+                      }
+                    _img.src = nextFrameDataURL;
+                  } );
+                }
+                ProcessingModalWindow.finish();
+                nextRecorder.finally().then( ( blob ) => {
+                  VIDEO_BLOB = blob;
+                  const fr = new FileReader();
+                  fr.onload = () => {
+                    VIDEO_SOURCE = fr.result;
+                  };
+                  fr.readAsDataURL( blob );
+                });
+              }
+            }
+          } );
+
+          const VIDEO_VIEWER_TEMPLATE = `
+            <html>
+              <head>
+                <meta name="viewport" content="width=device-width">
+              </head>
+              <body>
+                <video controls="" autoplay="" name="media">
+                  <source src="__SOURCE_DATAURL__" type="video/mp4">
+                </video>
+              </body>
+            </html>
+          `;
+
+          $$('test_video').addEventListener( 'click', () => {
+            if( VIDEO_BLOB ){
+              if( VIDEO_URL ) URL.revokeObjectURL( VIDEO_URL );
+              VIDEO_URL = URL.createObjectURL( VIDEO_BLOB );
+              const _width = parseInt( $$('record_video_width').value );
+              const _height = parseInt( $$('record_video_height').value );
+              const xPosition = (screen.width/2) - _width/2;
+              const yPosition = (screen.height/2) - _height/2;
+              const _fps = parseFloat( $$('record_video_fps').value );
+              const win = window.open( 
+              VIDEO_URL, 
+              "Title2",`
+              toolbar=no,
+              location=no,
+              directories=no,
+              status=no,
+              menubar=no,
+              scrollbars=no,
+              resizable=no,
+              width=${ _width },
+              height=${ _height },
+              top=${yPosition},
+              left=${xPosition}
+              `);
+            }
+          } );
+
+          $$('get_result_gallery_mp4').addEventListener( 'click', () => {
+            if( VIDEO_BLOB ){
+              VIDEO_URL = URL.createObjectURL( VIDEO_BLOB );
+              const a = $$("get_result_gallery_mp4");
+              a.href = VIDEO_URL;
+              a.download = dateNow() + '_gallery.mp4';
+            }
           } );
 
         }
