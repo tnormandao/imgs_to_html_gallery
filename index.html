@@ -497,6 +497,9 @@
                     width: 512px;
                     height: 128px;
                   }
+                  #change_thumb_size{
+                    width: 512px;
+                  }
                   #global_gallery{
                     background-color: #000;
                     width: 512px;
@@ -537,6 +540,7 @@
                     <textarea class="info_area" id="text_positive"></textarea>
                     <textarea class="info_area" id="text_negative"></textarea>
                     <textarea class="info_area" id="text_config"></textarea>
+                    <input id="change_thumb_size" type="range" min="64" max="240" step="1" value="64">
                     <div id="global_gallery"></div>
                   </div>
                   <div class="display_div">
@@ -630,15 +634,20 @@
                     const globalGalleryUpdate = () => {
                       const frames = searchEngine.filtered;
                       const GG = $$('global_gallery');
+                      const sizeVal = $$('change_thumb_size').value;
                       GG.innerHTML = "";
                       for( let i = 0; i < frames.length; i++ ){
                         const filteredFrame = searchEngine.getFiltered( i );
                         const div_ = document.createElement('div');
-                        div_.title = filteredFrame.t.positive;
                         div_.addEventListener( 'click', () => {
                           setFrame( i );
                         } );
+                        div_.title = filteredFrame.t.positive;
+                        div_.style.width = sizeVal; 
+                        div_.style.height = sizeVal;
                         const img = new Image();
+                        img.style.maxWidth = sizeVal;                 
+                        img.style.maxHeight = sizeVal;
                         img.src = filteredFrame.f;
                         div_.appendChild( img );
                         GG.appendChild( div_ );
@@ -686,6 +695,9 @@
                       }
                     };
                     searchEngine.init();
+                    $$('change_thumb_size').addEventListener( 'change', () => {
+                        globalGalleryUpdate();
+                    } );
                   };
                 </SCRPT>
               </body>
