@@ -207,7 +207,6 @@
     <script>
 
         let CROSSFRAME_TRANSITION_ENABLED = true;
-      
         class MP4_Recorder {
 
           constructor( config = {} ){
@@ -356,7 +355,6 @@
 
         };
 
-
         const pngMetadata = new function(){
 
           // source code
@@ -499,16 +497,34 @@
                     width: 512px;
                     height: 128px;
                   }
+                  #global_gallery{
+                    background-color: #000;
+                    width: 512px;
+                    height: 384px;
+                    overflow-y: scroll;
+                  }                  
+                  #global_gallery div{
+                    width: 64px;
+                    height: 64px;
+                    margin: 2px;
+                    cursor: pointer;
+                    float: left;
+                  }
+                  #global_gallery div img{
+                    max-width: 64px;
+                    max-height: 64px;
+                  }
                 </style>
               </head>
               <body>
-                <input id="slide" style="width: 768px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><span id="frame_counter"></span>
+                <input id="slide" style="width: 705px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><button id="framecontrol_prev">&#5130;</button>|<button id="framecontrol_next">&#5125;</button> | <span id="frame_counter"></span>
                 <button id="play_frames">play</button> | fps: <input value="1" id="frame_per_second" type="number" min="0.1" max="60" step="0.1" /> | <input type="text" id="search_field" placeholder="search" ><br>
                 <div style="width:1282px;">
                   <div id="text_info">
                     <textarea class="info_area" id="text_positive"></textarea>
                     <textarea class="info_area" id="text_negative"></textarea>
                     <textarea class="info_area" id="text_config"></textarea>
+                    <div id="global_gallery"></div>
                   </div>
                   <div style="width:768px;">
                     <img style="width: 100%;" id="display">
@@ -542,6 +558,8 @@
                     } ); 
                     player = {
                       playButton: $$('play_frames'),
+                      framecontrol_prev: $$('framecontrol_prev'),
+                      framecontrol_next: $$('framecontrol_next'),
                       active: false,
                       speed: 1,
                       player: null,
@@ -557,6 +575,16 @@
                           this.next();
                         } else {
                           this.stop();
+                        }
+                      },
+                      framePrev: function(){
+                        if( searchEngine.filtered[ CURRENT_FRAME - 1 ] ){
+                            setFrame( CURRENT_FRAME - 1, true );
+                        }
+                      },
+                      frameNext: function(){
+                        if( searchEngine.filtered[ CURRENT_FRAME + 1 ] ){
+                            setFrame( CURRENT_FRAME + 1, true );
                         }
                       },
                       next: function(){
@@ -575,9 +603,34 @@
                         this.playButton.addEventListener( 'click', () => { 
                           this.play() 
                         } );
+                        this.framecontrol_prev.addEventListener( 'click', () => { 
+                          this.stop(); 
+                          this.framePrev(); 
+                        } );
+                        this.framecontrol_next.addEventListener( 'click', () => { 
+                          this.stop(); 
+                          this.frameNext(); 
+                        } );
                       }
                     };
                     player.init();
+                    const globalGalleryUpdate = () => {
+                      const frames = searchEngine.filtered;
+                      const GG = $$('global_gallery');
+                      GG.innerHTML = "";
+                      for( let i = 0; i < frames.length; i++ ){
+                        const filteredFrame = searchEngine.getFiltered( i );
+                        const div_ = document.createElement('div');
+                        div_.title = filteredFrame.t.positive;
+                        div_.addEventListener( 'click', () => {
+                          setFrame( i );
+                        } );
+                        const img = new Image();
+                        img.src = filteredFrame.f;
+                        div_.appendChild( img );
+                        GG.appendChild( div_ );
+                      } 
+                    };
                     searchEngine = {
                       search_field: $$('search_field'),
                       filtered: [],
@@ -595,6 +648,7 @@
                             this.filtered.push( i );
                           }
                         }
+                        globalGalleryUpdate();
                         setFrame( 0 );
                       },
                       getFiltered: function( filteredIndex ){
