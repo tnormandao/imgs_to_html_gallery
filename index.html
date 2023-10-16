@@ -514,6 +514,19 @@
                     max-width: 64px;
                     max-height: 64px;
                   }
+                  .display_div{
+                    width: 768px;
+                    height: 768px;
+                    position: relative;
+                  }
+                  .display_div img{
+                    max-width: 768px;
+                    max-height: 768px;
+                    position: absolute;
+                    left: 50%;
+                    top:50%;
+                    transform: translate( -50%, -50% );
+                  }
                 </style>
               </head>
               <body>
@@ -526,8 +539,8 @@
                     <textarea class="info_area" id="text_config"></textarea>
                     <div id="global_gallery"></div>
                   </div>
-                  <div style="width:768px;">
-                    <img style="width: 100%;" id="display">
+                  <div class="display_div">
+                    <img id="display">
                   </div>
                 </div>
                 <SCRPT>
