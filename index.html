@@ -15,7 +15,7 @@
         height: 95%;
       }
       #inspector_container{
-        width: 1280px;
+        width: 1600px;
       }
       #inspect_gallery{
         display: inline-block;
@@ -27,31 +27,31 @@
       #inspector_thumbs_box{
         display: inline-block;
         background-color: #333;
-        width: 335px; 
+        width: 660px; 
         height: 600px; 
         float: right;
       }
       #thubms_size_control{
-        width: 330px;
+        width: 655px;
         height: 20px;
       }
       #thumbs_list{
         overflow-y: scroll;
-        width: 330px;
+        width: 660px;
         height: 570px;
       }
       #thumbs_list div{
-        width: 64px;
-        height: 64px;
+        /* width: 64px; */
+        /* height: 64px; */
         margin: 2px;
         position: relative;
-        cursor: pointer;
+        cursor: alias;
         float: left;
       }
       
       #thumbs_list div .editable_include {
         position: absolute;
-        cursor: copy;
+        cursor: pointer;
         height: 15px;
         width: 15px;
         right: 1px;
@@ -60,7 +60,7 @@
         background: #ccffcc;
         z-index: 10;
         opacity: 0.6;
-        border: 1px #000000 solid;
+        border: 1px #fff solid;
         box-shadow: 1px 1px 1px #000;
       }
 
@@ -68,10 +68,23 @@
         background: transparent;
       }
 
-      #thumbs_list div img{
-        max-width: 64px;
-        max-height: 64px;
+      #thumbs_list div .editable_include:hover{
+        border: 1px #000 solid;
+        box-shadow: 1px 1px 1px #fff;
       }
+
+      #thumbs_list div img{
+        position: absolute;
+        transform: translate( -50%, -50% );
+        top: 50%;
+        left: 50%;
+        max-width: 100%; 
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        user-select: none;
+      }
+
       .editable_container{
         margin: 10px 0px;
         position: relative;
@@ -267,7 +280,7 @@
         <div id="inspect_gallery">
         </div>
         <div id="inspector_thumbs_box">
-          <input id="thubms_size_control" type="range" min="48" max="145" step="1" value="48" >
+          <input id="thubms_size_control" type="range" min="2" max="9" step="1" value="6" >
           <div id="thumbs_list"></div>
         </div>
       </div>
@@ -594,8 +607,10 @@
                     position: relative;
                   }
                   .display_div img{
-                    max-width: 768px;
-                    max-height: 768px;
+                    max-width: 100%; 
+                    max-height: 100%;
+                    width: auto;
+                    height: auto;
                     position: absolute;
                     left: 50%;
                     top:50%;
@@ -1209,7 +1224,7 @@
           const changeThumbsSize = () => {
             const frames = FRAMES_BUFFER_ARRAY;
             const GG = $$('thumbs_list');
-            const sizeVal = $$('thubms_size_control').value;
+            const sizeVal = 606 / $$('thubms_size_control').value;
             GG.innerHTML = "";
             for( let i = 0; i < frames.length; i++ ){
               const filteredFrame = {
@@ -1224,8 +1239,8 @@
               div_.style.width = sizeVal; 
               div_.style.height = sizeVal;
               const img = new Image();
-              img.style.maxWidth = sizeVal;                 
-              img.style.maxHeight = sizeVal;
+              // img.style.maxWidth = sizeVal;                 
+              // img.style.maxHeight = sizeVal;
               img.src = filteredFrame.f;
 
               div_.appendChild( img );
