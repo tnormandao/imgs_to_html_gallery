@@ -14,16 +14,68 @@
         padding: 10px;
         height: 95%;
       }
+      #inspector_container{
+        width: 1280px;
+      }
       #inspect_gallery{
-        width: 1280px; 
+        display: inline-block;
+        width: 935px; 
         height: 600px; 
         border: 1px solid #333; 
         overflow-y: scroll;
       }
+      #inspector_thumbs_box{
+        display: inline-block;
+        background-color: #333;
+        width: 335px; 
+        height: 600px; 
+        float: right;
+      }
+      #thubms_size_control{
+        width: 330px;
+        height: 20px;
+      }
+      #thumbs_list{
+        overflow-y: scroll;
+        width: 330px;
+        height: 570px;
+      }
+      #thumbs_list div{
+        width: 64px;
+        height: 64px;
+        margin: 2px;
+        position: relative;
+        cursor: pointer;
+        float: left;
+      }
+      
+      #thumbs_list div .editable_include {
+        position: absolute;
+        cursor: copy;
+        height: 15px;
+        width: 15px;
+        right: 1px;
+        top: 1px;
+        border-radius: 5px;
+        background: #ccffcc;
+        z-index: 10;
+        opacity: 0.6;
+        border: 1px #000000 solid;
+        box-shadow: 1px 1px 1px #000;
+      }
+
+      #thumbs_list div .editable_include.excluded{
+        background: transparent;
+      }
+
+      #thumbs_list div img{
+        max-width: 64px;
+        max-height: 64px;
+      }
       .editable_container{
         margin: 10px 0px;
         position: relative;
-        width: 1255px;
+        width: 910px;
         height: 386px;
         display: inline-block;
         clear: left;
@@ -31,8 +83,8 @@
         padding-top: 10px;
       }
       .editable_img{
-        max-width: 740px;
-        height: 386px;
+        max-width: 386px;
+        max-height: 386px;
         float: left;
       }
       .editable__prompt_container{
@@ -49,7 +101,15 @@
         opacity: 0.5;
         pointer-events: none;
       }
-
+      #load_files_label{
+        border: 1px #ffffff solid;
+        padding: 3px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #load_files_label:hover {
+        color: #ff5500;
+      }
       #video_recorder_menu{
         padding: 10px;
       }
@@ -175,10 +235,14 @@
     <div class="global_container">
       <h3 > Convert images into singlie ".html" file gallery </h3>
       <h4 style="color:#999;"> also will save metadatta from a1111 generated files </h3>
-      select result jpg quality: 
-      <input id="jpg_quality" type="range" min="0.01" max="1" step="0.01" value="0.2"> : 
-      <input id="jpg_quality_num" type="number" min="0.01" max="1" step="0.01" value="0.2"> |
-      select images for pack gallery: <input type="file" id="load_files" multiple/><br>
+      quality : 
+      <input id="jpg_quality" type="range" min="0.01" max="1" step="0.01" value="0.2" style="width:140px"> : 
+      <input id="jpg_quality_num" type="number" min="0.01" max="1" step="0.01" value="0.2"  style="width:60px"> |
+      resize :
+      <input id="jpg_resize" type="range" min="0.1" max="1" step="0.1" value="1.0" style="width:80px"> : 
+      <div id="jpg_resize_num" style="display: inline-block;width:40px">1</div> | 
+      <label id="load_files_label" for="load_files"> select images </label>
+      <input type="file" id="load_files" multiple style="display: none;"/><br>
       <hr>
       create mp4?: <input id="video_recorder_switcher" type="checkbox">
       <hr>
@@ -199,8 +263,15 @@
         <small style="color:#999;"> inspect and edit before download html_gallery </small> 
         <span id="processed"></span>
       </h3>
-      <div style="" id="inspect_gallery">
+      <div id="inspector_container" >
+        <div id="inspect_gallery">
+        </div>
+        <div id="inspector_thumbs_box">
+          <input id="thubms_size_control" type="range" min="48" max="145" step="1" value="48" >
+          <div id="thumbs_list"></div>
+        </div>
       </div>
+
 
     </div>
 
@@ -736,6 +807,7 @@
                 positive: '',
                 negative: '',
                 config: '',
+                include: true,
               };
               if( metadata && metadata[1] && metadata[1].type == 'tEXt' ){
                 const dataArr = metadata[1].data.split('\n');
@@ -762,13 +834,16 @@
                 const fr = new FileReader();
                 fr.onload = () => {
                   processingImage.onload = () => {
+                    const resize_factor = parseFloat( $$('jpg_resize').value ) || 1;
                     const nextImg = processingImage;
-                    processingCanvas.width = nextImg.width;
-                    processingCanvas.height = nextImg.height;
+                    const _width = Math.ceil( nextImg.width * resize_factor );
+                    const _height = Math.ceil( nextImg.height * resize_factor );
+                    processingCanvas.width = _width;
+                    processingCanvas.height = _height;
                     processingContext.drawImage( 
                       nextImg,
                       0, 0, nextImg.width, nextImg.height,
-                      0, 0, nextImg.width, nextImg.height
+                      0, 0, _width, _height
                     );
                     const quality = parseFloat( $$('jpg_quality').value );
                     const nextDataUrl = processingCanvas.toDataURL( "image/jpeg", quality );
@@ -870,6 +945,7 @@
             }
             ProcessingModalWindow.finish();
 
+            changeThumbsSize();
           };
 
           let TEMPLATE = '';
@@ -879,9 +955,19 @@
 
             TEMPLATE = HTML_TEMPLATE + '';
 
+            const FRAMES_FILTERED = [];
+            const TEXT_FILTERED = [];
+
+            for( let i = 0; i < TEXT_BUFFER_ARRAY.length; i++ ){
+              if( TEXT_BUFFER_ARRAY[i].include ){
+                FRAMES_FILTERED.push( FRAMES_BUFFER_ARRAY[ i ] );
+                TEXT_FILTERED.push( TEXT_BUFFER_ARRAY[ i ] );
+              }
+            }
+
             TEMPLATE = TEMPLATE.replaceAll( 'SCRPT', 'script' );
-            TEMPLATE = TEMPLATE.replace( 'FRAMES_JSON', JSON.stringify( FRAMES_BUFFER_ARRAY, null, 2 ) );
-            TEMPLATE = TEMPLATE.replace( 'TEXT_JSON', JSON.stringify( TEXT_BUFFER_ARRAY, null, 2 ) );
+            TEMPLATE = TEMPLATE.replace( 'FRAMES_JSON', JSON.stringify( FRAMES_FILTERED, null, 2 ) );
+            TEMPLATE = TEMPLATE.replace( 'TEXT_JSON', JSON.stringify( TEXT_FILTERED, null, 2 ) );
 
             const galleryBlob = new Blob([ TEMPLATE ], { type: "text/html" });
 
@@ -920,6 +1006,7 @@
             
             const container = document.createElement('div');
             container.classList.add('editable_container');
+            container.id = `inspector_key_${dataIndex}`;
 
             const nextImage = new Image();
             nextImage.src = FRAMES_BUFFER_ARRAY[ dataIndex ];
@@ -999,6 +1086,11 @@
           $$('jpg_quality').addEventListener( 'input', () => {
             $$('jpg_quality_num').value = $$('jpg_quality').value;
           } );
+
+          $$('jpg_resize').addEventListener( 'input', () => {
+            $$('jpg_resize_num').innerText = $$('jpg_resize').value;
+          } );
+
 
           let RECORDER_ACTIVE = !!$$('video_recorder_switcher').checked;
           let VIDEO_SOURCE = null;
@@ -1107,6 +1199,64 @@
             }
           } );
 
+          const scrollInspectorToFrame = ( i ) => {
+            const _thumb = $$(`inspector_key_${i}`);
+            if( _thumb ){
+            _thumb.scrollIntoView({ behavior: 'instant' });
+            }
+          };
+
+          const changeThumbsSize = () => {
+            const frames = FRAMES_BUFFER_ARRAY;
+            const GG = $$('thumbs_list');
+            const sizeVal = $$('thubms_size_control').value;
+            GG.innerHTML = "";
+            for( let i = 0; i < frames.length; i++ ){
+              const filteredFrame = {
+                t: TEXT_BUFFER_ARRAY[ i ],
+                f: FRAMES_BUFFER_ARRAY[ i ],
+              };
+              const div_ = document.createElement('div');
+              div_.addEventListener( 'click', () => {
+                scrollInspectorToFrame( i );
+              } );
+              div_.title = filteredFrame.t.positive;
+              div_.style.width = sizeVal; 
+              div_.style.height = sizeVal;
+              const img = new Image();
+              img.style.maxWidth = sizeVal;                 
+              img.style.maxHeight = sizeVal;
+              img.src = filteredFrame.f;
+
+              div_.appendChild( img );
+              
+              const _includeBox = document.createElement('div');
+              _includeBox.title = 'include box';
+              _includeBox.classList.add('editable_include');
+              if( !TEXT_BUFFER_ARRAY[ i ].include ){
+                  _includeBox.classList.add('excluded');
+              }
+              _includeBox.addEventListener( 'click', ( e ) => { 
+                e.stopPropagation();
+                e.preventDefault();
+                const nextIncState = !TEXT_BUFFER_ARRAY[ i ].include;
+                TEXT_BUFFER_ARRAY[ i ].include = nextIncState;
+                if( nextIncState ){
+                  _includeBox.classList.remove('excluded');
+                } else {
+                  _includeBox.classList.add('excluded');
+                }
+                // updateTemplate();
+              } );
+              div_.appendChild( _includeBox );
+
+              GG.appendChild( div_ );
+            } 
+          };
+          
+          $$('thubms_size_control').addEventListener( 'change', () => {
+            changeThumbsSize();
+          } );
         }
     </script>
   </body>
