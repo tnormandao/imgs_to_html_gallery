@@ -31,8 +31,28 @@
         height: 600px; 
         float: right;
       }
+      #switch_include_all, #switch_exclude_all {
+        display: inline-block;
+        cursor: pointer;
+        float: right;
+        margin: 3px;
+        border: 1px #ccc solid;
+        border-radius: 4px;
+        width: 40px;
+        height: 15px;
+        font-size: 12px;
+        line-height: 15px;
+        text-align: center;
+        padding: 0px;
+      }
+      #switch_include_all:hover {
+        color: #55ff00;
+      }
+      #switch_exclude_all:hover  {
+        color: #ff5500;
+      }
       #thubms_size_control{
-        width: 655px;
+        width: 560px;
         height: 20px;
         user-select: none;
       }
@@ -63,6 +83,7 @@
         opacity: 0.6;
         border: 1px #fff solid;
         box-shadow: 1px 1px 1px #000;
+        user-select: none;
       }
 
       #thumbs_list div .editable_include.excluded{
@@ -73,6 +94,33 @@
         border: 1px #000 solid;
         box-shadow: 1px 1px 1px #fff;
       }
+      
+      #thumbs_list div .editable_favorite {
+        user-select: none;
+        position: absolute;
+        cursor: pointer;
+        height: 15px;
+        width: 15px;
+        right: 4px;
+        font-size: 22px;
+        bottom: 12px;
+        z-index: 10;
+        opacity: 0.4;
+        color: #fff;
+      }
+
+      #thumbs_list div .editable_favorite.active{
+        color: #faea0d;
+        text-shadow: #000 1px 0 3px;
+        opacity: 1;
+      }
+
+      #thumbs_list div .editable_favorite:hover{
+        opacity: 1;
+        color: #fff;
+        text-shadow: #000 1px 0 3px;
+      }
+
 
       #thumbs_list div img{
         position: absolute;
@@ -282,11 +330,18 @@
         </div>
         <div id="inspector_thumbs_box">
           <input id="thubms_size_control" type="range" min="2" max="9" step="1" value="6" >
+          <div id="switch_include_all"  title="include all"> + all</div> 
+          <div title="exclude all" id="switch_exclude_all">- all</div>
           <div id="thumbs_list"></div>
         </div>
       </div>
-
-
+      <a href="" style="color: #fff; opacity: 0.3;" id="download_data_as_json">get gallery json</a> |
+      <label for="replace_by_json">replace by gallery json</label> 
+      <input id="replace_by_json" type="file" accept=".json" style="display: none;"/> | 
+      <label for="concat_by_json">concat by gallery json</label> 
+      <input id="concat_by_json" type="file" accept=".json" style="display: none;"/> | 
+      <label for="extract_from_html">extract html and concat</label> 
+      <input id="extract_from_html" type="file" accept=".html" style="display: none;"/> | 
     </div>
 
     <script>
@@ -578,6 +633,15 @@
                     width: 512px;
                     float: right;
                   }
+                  #show_faworites{
+                    display: inline-block;
+                    width: 20px;
+                    height: 20px;
+                    font-size: 22px;
+                    line-height: 20px;
+                    color: faea0d;
+                    cursor: pointer;
+                  }
                   .info_area{
                     width: 512px;
                     height: 128px;
@@ -602,6 +666,10 @@
                     max-width: 64px;
                     max-height: 64px;
                   }
+                  #frame_counter{
+                    display: inline-block;
+                    width: 60px;
+                  }
                   .display_div{
                     width: 768px;
                     height: 768px;
@@ -621,7 +689,9 @@
               </head>
               <body>
                 <input id="slide" style="width: 705px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><button id="framecontrol_prev">&#5130;</button>|<button id="framecontrol_next">&#5125;</button> | <span id="frame_counter"></span>
-                <button id="play_frames">play</button> | fps: <input value="1" id="frame_per_second" type="number" min="0.1" max="60" step="0.1" /> | <input type="text" id="search_field" placeholder="search" ><br>
+                <button id="play_frames">play</button> | fps: <input value="1" id="frame_per_second" type="number" min="0.1" max="60" step="0.1" /> | 
+                <input type="text" id="search_field" placeholder="search" > |  
+                <div title="show only favorites" id="show_faworites">☆</div><br>
                 <div style="width:1282px;">
                   <div id="text_info">
                     <textarea class="info_area" id="text_positive"></textarea>
@@ -824,6 +894,7 @@
                 negative: '',
                 config: '',
                 include: true,
+                favorite: false,
               };
               if( metadata && metadata[1] && metadata[1].type == 'tEXt' ){
                 const dataArr = metadata[1].data.split('\n');
@@ -985,14 +1056,15 @@
             TEMPLATE = TEMPLATE.replace( 'FRAMES_JSON', JSON.stringify( FRAMES_FILTERED, null, 2 ) );
             TEMPLATE = TEMPLATE.replace( 'TEXT_JSON', JSON.stringify( TEXT_FILTERED, null, 2 ) );
 
+            updateGallerHTMLDonwloadLink();
+          };
+
+          const updateGallerHTMLDonwloadLink = () => {
             const galleryBlob = new Blob([ TEMPLATE ], { type: "text/html" });
-
             WIN_URL = URL.createObjectURL( galleryBlob );
-
             const a = $$("get_result_gallery");
             a.href = WIN_URL;
             a.download = dateNow() + '_gallery.html';
-
           };
 
           const openPopup = () => {
@@ -1072,25 +1144,22 @@
             updateTemplate();
           } );
 
-          $$('load_files').addEventListener( 'change', async () => { 
-            
-            FRAMES_BUFFER_ARRAY = [];
-            TEXT_BUFFER_ARRAY = [];
-
-            const files = $$('load_files').files;
-            await processFiles( files );
-
-            updateTemplate();
-
-            $$('load_files').value = null;
-
+          const updateInspectorByFiles = () => {
             $$( 'inspect_gallery' ).innerHTML = '';
-
             for( let i = 0; i < FRAMES_BUFFER_ARRAY.length; i++ ){
               const nextEditableInspectorModule = createInspectorModule( i );
               $$( 'inspect_gallery' ).appendChild( nextEditableInspectorModule );
             }
-            
+          };
+
+          $$('load_files').addEventListener( 'change', async () => { 
+            FRAMES_BUFFER_ARRAY = [];
+            TEXT_BUFFER_ARRAY = [];
+            const files = $$('load_files').files;
+            await processFiles( files );
+            updateTemplate();
+            $$('load_files').value = null;
+            updateInspectorByFiles();
           } ); 
 
           $$('jpg_quality_num').addEventListener( 'input', () => {
@@ -1227,6 +1296,7 @@
             const GG = $$('thumbs_list');
             const sizeVal = 606 / $$('thubms_size_control').value;
             GG.innerHTML = "";
+            $$('processed').innerText = `${frames.length} : ${frames.length}`;
             for( let i = 0; i < frames.length; i++ ){
               const filteredFrame = {
                 t: TEXT_BUFFER_ARRAY[ i ],
@@ -1240,11 +1310,32 @@
               div_.style.width = sizeVal; 
               div_.style.height = sizeVal;
               const img = new Image();
-              // img.style.maxWidth = sizeVal;                 
-              // img.style.maxHeight = sizeVal;
               img.src = filteredFrame.f;
 
               div_.appendChild( img );
+      
+              const _favoriteBox = document.createElement('div');
+              _favoriteBox.title = 'favorite box';
+              _favoriteBox.classList.add('editable_favorite');
+              _favoriteBox.innerText =  '☆';
+              if( TEXT_BUFFER_ARRAY[ i ].favorite ){
+                _favoriteBox.classList.add('active');
+                _favoriteBox.innerText =  '★';
+              }
+              _favoriteBox.addEventListener( 'click', ( e ) => { 
+                e.stopPropagation();
+                e.preventDefault();
+                const nextFavoriteState = !TEXT_BUFFER_ARRAY[ i ].favorite;
+                TEXT_BUFFER_ARRAY[ i ].favorite = nextFavoriteState;
+                if( nextFavoriteState ){
+                  _favoriteBox.classList.add('active');
+                _favoriteBox.innerText =  '★';
+                } else {
+                  _favoriteBox.classList.remove('active');
+                _favoriteBox.innerText =  '☆';
+                }
+              } );
+              div_.appendChild( _favoriteBox );
               
               const _includeBox = document.createElement('div');
               _includeBox.title = 'include box';
@@ -1262,17 +1353,165 @@
                 } else {
                   _includeBox.classList.add('excluded');
                 }
-                // updateTemplate();
               } );
               div_.appendChild( _includeBox );
 
               GG.appendChild( div_ );
             } 
           };
-          
+          const getJSONfromFile = ( file, callback  ) => {
+            if( !file ) { callback( null ); return false; }
+            const fr = new FileReader();
+            fr.onload = () => {
+              let _json = null;
+              try { _json = JSON.parse( fr.result ); } catch( err ){}
+              if(!_json) { callback( null ); return false; }
+              callback( _json );
+            };
+            fr.readAsText( file );
+          };
+          const getTextfromFile = ( file, callback  ) => {
+            if( !file ) { callback( null ); return false; }
+            const fr = new FileReader();
+            fr.onload = () => {
+              callback( fr.result );
+            };
+            fr.readAsText( file );
+          };
+          $$('concat_by_json').addEventListener( 'change', async ( e ) => {
+            const file = $$('concat_by_json').files[0];            
+            $$('concat_by_json').value = null;
+            getJSONfromFile( file, ( _json ) => {              
+              if(!_json){ return null; }
+              for( const nextElement of _json ){
+                FRAMES_BUFFER_ARRAY.push( nextElement.f );
+                TEXT_BUFFER_ARRAY.push(  nextElement.t );
+              }
+              updateInspectorByFiles();
+              changeThumbsSize();
+            } );
+          } );
+          $$('replace_by_json').addEventListener( 'change', async ( e ) => {
+            const file = $$('replace_by_json').files[0];            
+            $$('replace_by_json').value = null;
+            getJSONfromFile( file, ( _json ) => { 
+              if(!_json){ return null; }             
+              FRAMES_BUFFER_ARRAY = [];
+              TEXT_BUFFER_ARRAY = [];
+              for( const nextElement of _json ){
+                FRAMES_BUFFER_ARRAY.push( nextElement.f );
+                TEXT_BUFFER_ARRAY.push(  nextElement.t );
+              }
+              updateInspectorByFiles();
+              changeThumbsSize();
+            } );
+          } );
+
+          $$('extract_from_html').addEventListener( 'change', async ( e ) => {
+            const file = $$('extract_from_html').files[0];            
+            $$('extract_from_html').value = null;
+            getTextfromFile( file, ( _html_string ) => { 
+              if( !_html_string.includes('/*DATA_START*/') ){
+                return false;
+              }
+              const asArray = _html_string.split('\n');
+              let extracted_f = '';
+              let extracted_t = '';
+              let status = 'start';
+              for( const nextString of asArray ){
+                const ns = nextString.trim();
+                if( ns.includes('/*DATA_END*/') ){
+                   break;
+                }
+                if( status === 'start' ){ 
+                  if( ns.includes('/*DATA_START*/') ){ status = 'none'; }
+                  continue;
+                }
+                if( ns.includes( 'const f' ) ){ 
+                  status = 'f';
+                  continue;
+                }
+                if( ns.includes( 'const t' ) ){ 
+                  status = 't';
+                  continue;
+                }
+                if( (status === 'f' || status === 't') && ns.includes('];') ){ 
+                  status = 'none';
+                  continue;
+                }
+                if( status === 'f' ){ extracted_f += ns }
+                if( status === 't' ){ extracted_t += ns }
+              }
+              if( extracted_f.length === 0 ){
+                return false;
+              }
+              // console.log( { extracted_f, extracted_t } );
+              extracted_f = JSON.parse(`[${ extracted_f }]`);
+              extracted_t = JSON.parse(`[${ extracted_t }]`);
+              // console.log( {
+              //   extracted_f,
+              //   extracted_t,
+              // } )
+              for( let i = 0; i < extracted_f.length; i++ ){
+                let textOptions = {
+                  positive: extracted_t[i].positive,
+                  negative: extracted_t[i].negative,
+                  config: extracted_t[i].config,
+                  include: ( 'include' in extracted_t[i] ) ? extracted_t[i].include : true,
+                  favorite: extracted_t[i].favorite || false,
+                };
+                FRAMES_BUFFER_ARRAY.push( extracted_f[ i ] );
+                TEXT_BUFFER_ARRAY.push( textOptions );
+              }
+              updateInspectorByFiles();
+              changeThumbsSize();
+            } );
+          } );
+
+          $$('download_data_as_json').addEventListener( 'click', ( e ) => {
+            // e.stopPropagation();
+            // e.preventDefault();
+            const finallyData = [];
+            for( let i = 0; i < FRAMES_BUFFER_ARRAY.length; i++ ){
+              finallyData.push( {
+                f: FRAMES_BUFFER_ARRAY[i],
+                t: TEXT_BUFFER_ARRAY[i],
+              } );
+            }
+            const finallyData_string = JSON.stringify(finallyData, null, 2);
+            alert( `
+Finally data:
+- Images: ${ finallyData.length }
+- Size: ~${ parseInt( finallyData_string.length / 1000 ) }Kb
+            ` );
+            const galleryBlob = new Blob([ JSON.stringify(finallyData, null, 2) ], { type: "application/json" });
+            _URL = URL.createObjectURL( galleryBlob );
+            const a = $$("download_data_as_json");
+            a.href = _URL;
+            a.download = dateNow() + '_gallery.json';
+            // URL.revokeObjectURL( _URL );
+          } );
+
+          $$('switch_include_all').addEventListener( 'click', () => {
+            for( const nextT of TEXT_BUFFER_ARRAY ){
+              nextT.include = true;
+            }
+              updateInspectorByFiles();
+              changeThumbsSize();
+          } );
+
+          $$('switch_exclude_all').addEventListener( 'click', () => {
+            for( const nextT of TEXT_BUFFER_ARRAY ){
+              nextT.include = false;
+            }
+              updateInspectorByFiles();
+              changeThumbsSize();
+          } );
+
           $$('thubms_size_control').addEventListener( 'change', () => {
             changeThumbsSize();
           } );
+
         }
     </script>
   </body>
