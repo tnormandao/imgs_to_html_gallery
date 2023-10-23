@@ -1496,10 +1496,12 @@
             // e.preventDefault();
             const finallyData = [];
             for( let i = 0; i < FRAMES_BUFFER_ARRAY.length; i++ ){
-              finallyData.push( {
-                f: FRAMES_BUFFER_ARRAY[i],
-                t: TEXT_BUFFER_ARRAY[i],
-              } );
+              if( TEXT_BUFFER_ARRAY[i].include ){
+                finallyData.push( {
+                  f: FRAMES_BUFFER_ARRAY[i],
+                  t: TEXT_BUFFER_ARRAY[i],
+                } );
+              }
             }
             const finallyData_string = JSON.stringify(finallyData, null, 2);
             alert( `
