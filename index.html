@@ -163,13 +163,13 @@
         opacity: 0.5;
         pointer-events: none;
       }
-      #load_files_label{
+      #load_files_label, .label_button{
         border: 1px #ffffff solid;
         padding: 3px 15px;
         border-radius: 4px;
         cursor: pointer;
       }
-      #load_files_label:hover {
+      #load_files_label:hover, .label_button:hover {
         color: #ff5500;
       }
       #video_recorder_menu{
@@ -295,7 +295,7 @@
 
 
     <div class="global_container">
-      <h3 > Convert images into singlie ".html" file gallery </h3>
+      <h3 > Convert images into single ".html" file gallery </h3>
       <h4 style="color:#999;"> also will save metadatta from a1111 generated files </h3>
       quality : 
       <input id="jpg_quality" type="range" min="0.01" max="1" step="0.01" value="0.2" style="width:140px"> : 
@@ -335,13 +335,13 @@
           <div id="thumbs_list"></div>
         </div>
       </div>
-      <a href="" style="color: #fff; opacity: 0.3;" id="download_data_as_json">get gallery json</a> |
-      <label for="replace_by_json">replace by gallery json</label> 
-      <input id="replace_by_json" type="file" accept=".json" style="display: none;"/> | 
-      <label for="concat_by_json">concat by gallery json</label> 
-      <input id="concat_by_json" type="file" accept=".json" style="display: none;"/> | 
-      <label for="extract_from_html">extract html and concat</label> 
-      <input id="extract_from_html" type="file" accept=".html" style="display: none;"/> | 
+      <a href="" style="color: #fff; opacity: 0.3;" id="download_data_as_json">get gallery json</a> 
+      <label class="label_button" for="replace_by_json">replace by gallery json</label> 
+      <input id="replace_by_json" type="file" accept=".json" style="display: none;"/> 
+      <label class="label_button" for="concat_by_json">concat by gallery json</label> 
+      <input id="concat_by_json" type="file" accept=".json" style="display: none;"/> 
+      <label class="label_button" for="extract_from_html">extract html and concat</label> 
+      <input id="extract_from_html" type="file" accept=".html" style="display: none;"/> 
     </div>
 
     <script>
