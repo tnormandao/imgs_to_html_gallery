@@ -642,7 +642,7 @@
                   }
                   #text_info{
                     width: 512px;
-                    float: right;
+                    float: left;
                   }
                   #show_faworites{
                     display: inline-block;
@@ -654,8 +654,9 @@
                     cursor: pointer;
                   }
                   .info_area{
-                    width: 512px;
-                    height: 128px;
+                    width: 768px;
+                    height: 100px;
+                    margin-top: 1px;
                   }
                   #change_thumb_size{
                     width: 512px;
@@ -663,7 +664,7 @@
                   #global_gallery{
                     background-color: #000;
                     width: 512px;
-                    height: 370px;
+                    height: 768px;
                     overflow-y: scroll;
                   }                  
                   #global_gallery div{
@@ -686,42 +687,55 @@
                     width: 50px;
                   }
                   #search_field{
-                    width: 170px;
+                    width: 195px;
                   }
                   .display_div{
                     width: 768px;
                     height: 768px;
                     position: relative;
+                    float: left;
                   }
-                  .display_div img{
+                  .display_div_image {
+                    width: 768px;
+                    height: 486px;
+                    float: left;
+                    position: relative;
+                  }
+                  .display_div_image img{
                     max-width: 100%; 
                     max-height: 100%;
-                    width: auto;
-                    height: auto;
+                    /* width: auto; */
+                    /* height: auto; */
                     position: absolute;
                     left: 50%;
                     top:50%;
                     transform: translate( -50%, -50% );
                   }
+                  #slide, #change_thumb_size{
+                    user-select: none;
+                  }
                 </style>
               </head>
               <body>
                 <div style="width:1282px;">
-                  <input id="slide" style="width: 705px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><button id="framecontrol_prev">&#5130;</button>|<button id="framecontrol_next">&#5125;</button> | <span id="frame_counter"></span>
+                  <span id="frame_counter"></span>
                   <button id="play_frames">play</button> | fps: <input value="1" id="frame_per_second" type="number" min="0.1" max="60" step="0.1" /> | 
                   <input type="text" id="search_field" placeholder="search" > |  
-                  <div title="show only favorites" id="show_faworites">&star;</div><br>
+                  <div title="show only favorites" id="show_faworites">&star;</div> |
+                  <button id="framecontrol_prev">&#5130;</button><button id="framecontrol_next">&#5125;</button>|<input id="slide" style="width: 690px;" type="range" min="0" max="0.9999" step="0.0001" value="0"><br>
                 </div>
                 <div style="width:1282px;">
                   <div id="text_info">
-                    <textarea class="info_area" id="text_positive"></textarea>
-                    <textarea class="info_area" id="text_negative"></textarea>
-                    <textarea class="info_area" id="text_config"></textarea>
                     <input id="change_thumb_size" type="range" min="64" max="240" step="1" value="64">
                     <div id="global_gallery"></div>
                   </div>
                   <div class="display_div">
-                    <img id="display">
+                    <div class="display_div_image">
+                      <img id="display">
+                    </div>
+                    <textarea class="info_area" id="text_positive"></textarea>
+                    <textarea class="info_area" id="text_negative"></textarea>
+                    <textarea class="info_area" id="text_config"></textarea>
                   </div>
                 </div>
                 <SCRPT>
