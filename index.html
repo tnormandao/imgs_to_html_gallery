@@ -313,7 +313,8 @@
         y: <input id="specific_resize_y" type="number" step="1" value="512" style="width: 80px;">
       </span> | 
       <label id="load_files_label" for="load_files"> select images </label>
-      <input type="file" id="load_files" multiple style="display: none;"/>
+      <input type="file" id="load_files" multiple style="display: none;"/>  | 
+      add to the end? <input title="new images will be added to the end of current gallery instead replace it" type="checkbox" id="add_images_over_gallery">
       <br>
       <hr>
       create mp4?: <input id="video_recorder_switcher" type="checkbox">
@@ -1210,8 +1211,11 @@
           };
 
           $$('load_files').addEventListener( 'change', async () => { 
-            FRAMES_BUFFER_ARRAY = [];
-            TEXT_BUFFER_ARRAY = [];
+            const add_to_the_end = !!$$('add_images_over_gallery').checked;
+            if(!add_to_the_end){
+              FRAMES_BUFFER_ARRAY = [];
+              TEXT_BUFFER_ARRAY = [];
+            }
             const files = $$('load_files').files;
             await processFiles( files );
             updateTemplate();
