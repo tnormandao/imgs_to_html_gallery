@@ -1,0 +1,421 @@
+<html>
+  <head>
+    <link rel="icon" type="image/x-icon" href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/4QBmRXhpZgAATU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAAExAAIAAAAQAAAATgAAAAAAAABgAAAAAQAAAGAAAAABcGFpbnQubmV0IDUuMC45AP/bAEMAAgEBAQEBAgEBAQICAgICBAMCAgICBQQEAwQGBQYGBgUGBgYHCQgGBwkHBgYICwgJCgoKCgoGCAsMCwoMCQoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/AABEIABAAEAMBEgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APyt1zXNP+MGntp+nybkbhmFGuaHp/wf09tQ0+Pai8sor92xP1j2P/Crbl8tj8Dwv1X23/CTfm8w0PXNP+D+nrp+oSbUXhWNGh6Hp/xg09dQ1CPcjcqpp4X6z7Ff2Xbl8wxX1X2r/ta/N5H/2Q==">
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r111/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+    <style>
+      body{
+        font-family: monospace;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: #374151;
+        color: #eee;
+      }
+      body * {
+        user-select: none;
+      }
+      input{
+        user-select: none;
+      }
+      .hidden{
+        display: none;
+      }
+      .label_button{
+        border: 1px #ffffff solid;
+        padding: 3px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #eee;
+      }
+      .label_button:hover {
+        color: #ff5500;
+      }
+      #video_input_container{
+        width: 150px;
+      }
+
+      #test_diff img{
+        max-width: 128px;
+      }
+
+      #sequence_decoder_canvas{
+        max-width: 480px;
+      }
+    </style>
+  </head>
+  <body>
+    <br>
+    <div id="controls_container">
+      <label class="label_button" for="file_loading">upload image</label>
+      <input type="file" id="file_loading" style="display: none;"> |
+      distance <input id="focus_distance" type="range" min="0" max="1" step="0.01" value="0"> | 
+      width <input id="focus_width" type="range" min="0.95" max="1" step="0.001" value="0"> | 
+      outblur <input id="focus_outblur" type="range" min="0" max="1" step="0.01" value="0"> | 
+      debug depth <input id="focus_debug" type="checkbox" >
+    </div><br><br>
+    
+    <div id="demo_container"></div>
+
+    <script>
+
+      const DEF_TEXTURE = new THREE.Texture();
+      const DEPTH_TEXTURE = new THREE.Texture();
+
+      const blurShaderMaterial = new THREE.ShaderMaterial({
+        side: THREE.DoubleSide,
+        uniforms: {
+          tDeff: { type: 't', value: DEF_TEXTURE },
+          tDepth: { type: 't', value: DEPTH_TEXTURE },
+          blured: { type: 'v', value: 0 },
+          focus: { type: 'v', value: 0 },
+          focusWidth: { type: 'v', value: 1 },
+          debug: { value: false },
+          resolution: {
+            type: 'v2',
+            value: new THREE.Vector2( 2, 2 ),
+          },
+        },
+        vertexShader: `
+              uniform sampler2D tDeff;
+              uniform sampler2D tDepth;
+              uniform vec2 resolution;
+              uniform float blured;
+              uniform float focus;
+              uniform float focusWidth;
+              
+              varying vec2 vUv;
+              
+              void main() {
+                  gl_Position = vec4(position, 1.0);
+                  vUv = uv;
+              }
+
+            `,
+        fragmentShader: `
+              uniform sampler2D tDeff;
+              uniform sampler2D tDepth;
+              uniform vec2 resolution;
+              uniform float blured;
+              uniform float focus;
+              uniform float focusWidth;
+              uniform bool debug;
+              
+              varying vec2 vUv;
+              
+              const lowp float PI = 3.141592;
+              const lowp float PI_half = PI * 0.5;
+              const lowp float Pi2 = PI * 2.;
+            
+              vec4 blur( sampler2D image, vec2 uv, vec2 resolution, float strange ) {
+                  
+                  const float Directions = 5.0; 
+                  const float Quality = 4.0;
+                  const float Size = 12.0;
+
+                  vec2 Radius = Size*strange/resolution.xy;
+
+                  vec4 Color = texture2D(image, uv);
+
+                  float dIndexExp = Pi2/Directions;
+                  float iIndexExp = 1.0/Quality;
+
+                  for( float d=0.0; d<Directions; d++ ){
+                    for(float i=1.; i<=Quality; i++){
+                      float direct = ( Color.b + d ) / Directions * Pi2 * (Color.r + Color.g);
+                      float pover = i / Quality;
+                      Color += texture2D( image, uv+vec2(cos(direct),sin(direct))*Radius*pover*focusWidth);
+                    }
+                  }
+                  
+                  return Color / ( Directions * Quality );
+              }
+
+              vec4 compression( sampler2D image, vec2 uv, vec2 resolution, float strange ) {
+                  
+                  float Size = 0.1 * focusWidth;
+
+                  vec4 Color = texture2D(image, uv);
+                  vec3 testColor = Color.rgb * 3.;
+                  vec2 Radius = Size*strange/resolution.xy;
+
+                  vec3 edgesColor = texture2D( image, uv+vec2(cos(PI_half),sin(PI_half)) * Radius * Color.r ).rgb;
+                  edgesColor += texture2D( image, uv+vec2(cos(PI),sin(PI)) * Radius * Color.g ).rgb;
+                  edgesColor += texture2D( image, uv+vec2(cos(PI_half + PI_half),sin(PI_half + PI_half)) * Radius * Color.b ).rgb;
+                  edgesColor += texture2D( image, uv+vec2(cos(Pi2),sin(Pi2)) * Radius ).rgb;
+                  
+                  float finallyTest1 = ( testColor.r + testColor.g + testColor.b ) / 3. ;
+                  float finallyTest2 = ( edgesColor.r + edgesColor.g + edgesColor.b ) / 3.;
+
+                  float finallyTest = sin( PI_half +  PI_half * ( finallyTest1 / finallyTest2 ) );
+
+                  if( finallyTest * strange < 0.0 ){ return Color; }
+
+                  vec4 finallyColor =  blur( image, uv, resolution, finallyTest * strange );
+
+
+                  if( debug ){
+                    finallyColor.r += finallyTest * strange;
+                  }
+
+                  return finallyColor;
+              }
+
+              void main() {
+
+                  float depthFactor = focus;
+
+                  vec4 currentDepthPixel = texture2D( tDepth, vUv );
+                  float depthFactorP = 1. - (  
+                    ( 
+                      currentDepthPixel.r + 
+                      currentDepthPixel.g + 
+                      currentDepthPixel.b 
+                    ) / 3. );
+
+                  float depthDiff = abs( depthFactorP - depthFactor );
+                  float blurFactor = sin( depthDiff * ( 1. - focusWidth ) * PI_half );
+
+                  vec4 finallyColor = compression( 
+                      tDeff,
+                      vUv, 
+                      resolution, 
+                      blurFactor * blured
+                      // blured
+                  );
+
+                  if( debug ){
+                    // finallyColor = vec4( currentDepthPixel.rgb, 1. );
+                    finallyColor.r += ( depthDiff * ( 1. - focusWidth ) * blured ) / 2.;
+                  }
+
+                  gl_FragColor = finallyColor;
+
+              }
+            `,
+      });
+
+
+      class PydnetMini {
+
+        constructor(){
+          this.canvas =  document.createElement('canvas');
+          this.ctx = this.canvas.getContext("2d");
+        }
+
+        async init(){
+          const MODEL = "https://raw.githubusercontent.com/FilippoAleotti/demo_live/master/assets/js/pydnet.json";
+          this.model = await tf.loadGraphModel(MODEL);
+          this.width = 640;
+          this.height = 384;
+          return this;
+        }
+
+        async runImgPrediction( img ){
+          const results = await this.predict( img );
+
+          this.canvas.width = img.width;
+          this.canvas.height = img.height;
+          this.ctx.drawImage(img, 0, 0);
+          
+          var buffer = new Uint8ClampedArray(this.width * this.height * 4);
+          var i = 0;
+          for (var y = 0; y < this.height; y++) {
+              for (var x = 0; x < this.width; x++) {
+                  var index = y * this.width + x;
+                  var depth = results[0][index];
+                  buffer[i] = results[0][index];
+                  buffer[i + 1] = results[0][index];
+                  buffer[i + 2] = results[0][index];
+                  buffer[i + 3] = 255.0;
+                  i += 4;
+              }
+          }
+          const imageData = new ImageData(buffer, this.width, this.height);
+          return imageData;
+        }
+
+        async predict(img) {
+            const [data, resizeInputData] = tf.tidy(() => {
+                var raw_input = tf.browser.fromPixels(img);
+                var upsampledraw_input = tf.image.resizeBilinear(raw_input, [this.height, this.width]);
+                var preprocessedInput = upsampledraw_input.expandDims();
+                preprocessedInput = tf.div(preprocessedInput, 255.0);
+                var result = this.model.predict(preprocessedInput);
+                result = this.prepareOutput(result, img.width, img.height);
+                upsampledraw_input = tf.cast(upsampledraw_input, "int32");
+                const data = result.dataSync();
+                const resizeInputData = upsampledraw_input.dataSync();
+                return [data, resizeInputData];
+            });
+            await tf.nextFrame();
+            return [data, resizeInputData];
+        }
+
+        prepareOutput(tensor, width, height) {
+            return tf.tidy(() => {
+                tensor = tf.relu(tensor);
+                tensor = tf.squeeze(tensor);
+                var min_value = tf.min(tensor);
+                var max_value = tf.max(tensor);
+                tensor = tf.div(tf.sub(tensor, min_value), tf.sub(max_value, min_value));
+                tensor = tf.mul(tensor, 255.0);
+                tensor = tf.cast(tensor, "int32");
+                return tensor;
+            });
+        }
+
+      }
+
+      $$ = ( ID ) => { return document.getElementById(ID) }
+      
+      const FILE_READER = new FileReader();
+      const compare_canvas = document.createElement( 'canvas' );
+      compare_canvas.width = 224;
+      compare_canvas.height = 224;
+      const compare_ctx = compare_canvas.getContext( '2d' );
+
+      let COMPARE_CANVAS_WIDTH = 0;
+      let COMPARE_CANVAS_HEIGHT = 0;
+
+      function dateNow(){
+        const d = new Date();
+        let yea = d.getFullYear(), mou = d.getMonth(), da = d.getDate(), ho = d.getHours(), min = d.getMinutes(), sec = d.getSeconds();
+        const c = ( _c, _v ) => { return ( _c + '' ).length === 1 ? '0'+ _v: _v };
+        const combined_string = `${yea}${c( mou, mou+1 )}${c( da, da )}-${c( ho, ho )}${c( min, min )}${c( sec, sec )}`;
+        return combined_string;
+      }
+      
+      let tf_model = undefined;
+      let tf_predictions = undefined;
+
+      class THREE_SCENE {
+
+        constructor( container_id ) {
+
+          this.domContainer = $$( container_id );
+
+          this.width = 150;
+          this.height = 150;
+          this.init();
+        }
+
+        init() {
+          const { width, height } = this;
+          this.scene = new THREE.Scene();
+          this.camera = new THREE.OrthographicCamera(
+            width / -2,
+            width / 2,
+            height / 2,
+            height / -2,
+            1,
+            1000
+          );
+          this.camera.updateProjectionMatrix();
+          this.scene.add(this.camera);
+          this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            // preserveDrawingBuffer: true,
+          });
+          this.renderer.localClippingEnabled = true;
+          this.domContainer.appendChild(this.renderer.domElement);
+          this.renderer.setPixelRatio(window.devicePixelRatio);
+          this.renderer.setSize(width, height);
+
+          this.material = blurShaderMaterial;
+          
+          this.planeGeometry = new THREE.PlaneGeometry(2, 2, 1, 1);
+          this.plane = new THREE.Mesh(this.planeGeometry, this.material);
+          this.scene.add(this.plane);
+        }
+
+
+        renderTHREE() {
+          this.camera.updateProjectionMatrix();
+          this.renderer.render(this.scene, this.camera);
+        }
+
+        analizeImage(){
+
+        }
+
+        resetImages( img, depthImg ){
+          this.renderer.setSize(img.width, img.height);
+          this.material.uniforms.tDeff.value.image = img;
+          this.material.uniforms.tDeff.value.needsUpdate = true;
+          this.material.uniforms.tDepth.value.image = depthImg;
+          this.material.uniforms.tDepth.value.needsUpdate = true;
+          this.material.needUpdate = true;
+          this.renderTHREE();
+        }
+
+      }
+
+      let DEPTH_NET, THREE_APP;
+
+      const TestCan = document.createElement('canvas');
+      const TestCtx = TestCan.getContext('2d');
+
+      const depthCan = document.createElement('canvas');
+      const depthCtx = depthCan.getContext('2d');
+
+      window.onload = async () => {
+
+        DEPTH_NET = await new PydnetMini().init();
+
+        THREE_APP = new THREE_SCENE( 'demo_container' );
+
+
+        console.log( DEPTH_NET, THREE_APP );
+
+        $$('file_loading').addEventListener('change', async () => {
+          const file = $$('file_loading').files[0];
+          console.log( file );
+          const fr = new FileReader();
+          fr.onload = () => {
+            const testImg = new Image();
+            testImg.onload = async () => {
+              const results = await DEPTH_NET.runImgPrediction( testImg );
+              console.log( results );
+              TestCan.width = testImg.width;
+              TestCan.height = testImg.height;
+              depthCan.width = results.width;
+              depthCan.height = results.height;
+              depthCtx.putImageData( results, 0, 0 );
+              TestCtx.drawImage( depthCan, 0, 0, testImg.width, testImg.height );
+              THREE_APP.resetImages( testImg, TestCan );
+            };
+            testImg.src = fr.result;
+          }
+          fr.readAsDataURL( file );
+
+        });
+
+        $$('focus_distance').addEventListener('change', () => {
+          THREE_APP.material.uniforms.focus.value = parseFloat($$('focus_distance').value);
+          THREE_APP.renderTHREE();
+        });
+
+        $$('focus_width').addEventListener('change', () => {
+          THREE_APP.material.uniforms.focusWidth.value = parseFloat($$('focus_width').value);
+          THREE_APP.renderTHREE();
+        });
+
+        $$('focus_outblur').addEventListener('change', () => {
+          THREE_APP.material.uniforms.blured.value = parseFloat($$('focus_outblur').value);
+          THREE_APP.renderTHREE();
+        });
+
+        $$('focus_debug').addEventListener('change', () => {
+          THREE_APP.material.uniforms.debug.value = !!$$('focus_debug').checked;
+          THREE_APP.renderTHREE();
+        });
+
+      }
+
+
+    </script>
+
+  </body>
+</html>
