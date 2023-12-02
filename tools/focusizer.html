@@ -53,7 +53,8 @@
       distance <input id="focus_distance" type="range" min="0" max="1" step="0.01" value="0"> | 
       width <input id="focus_width" type="range" min="0" max="1" step="0.01" value="0"> | 
       outblur <input id="focus_outblur" type="range" min="0" max="20" step="0.01" value="0"> | 
-      debug depth <input id="focus_debug" type="checkbox" >
+      debug depth <input id="focus_debug" type="checkbox" > | 
+      show depth <input id="show_depth" type="checkbox" > | 
     </div><br><br>
     
     <div id="demo_container"></div>
@@ -72,6 +73,7 @@
           focus: { type: 'v', value: 0 },
           focusWidth: { type: 'v', value: 1 },
           debug: { value: false },
+          showDepth: { value: false },
           resolution: {
             type: 'v2',
             value: new THREE.Vector2( 2, 2 ),
@@ -101,6 +103,7 @@
               uniform float focus;
               uniform float focusWidth;
               uniform bool debug;
+              uniform bool showDepth;
               
               varying vec2 vUv;
               
@@ -177,13 +180,33 @@
                   float depthDiff = abs( depthFactorP - depthFactor );
                   float blurFactor = sin( depthDiff * ( 1. - focusWidth ) * PI_half );
 
-                  vec4 finallyColor = compression( 
+                  vec4 finallyColor = vec4( 1. );
+
+                  if( showDepth ){
+                    finallyColor = compression( 
+                      tDepth,
+                      vUv, 
+                      resolution, 
+                      blurFactor * blured
+                      // blured
+                    );
+                  } else {
+                    finallyColor = compression( 
                       tDeff,
                       vUv, 
                       resolution, 
                       blurFactor * blured
                       // blured
-                  );
+                    );
+                  }
+
+                  // vec4 finallyColor = compression( 
+                  //     actualTexture,
+                  //     vUv, 
+                  //     resolution, 
+                  //     blurFactor * blured
+                  //     // blured
+                  // );
 
                   if( debug ){
                     // finallyColor = vec4( currentDepthPixel.rgb, 1. );
@@ -394,17 +417,17 @@
 
         });
 
-        $$('focus_distance').addEventListener('change', () => {
+        $$('focus_distance').addEventListener('input', () => {
           THREE_APP.material.uniforms.focus.value = parseFloat($$('focus_distance').value);
           THREE_APP.renderTHREE();
         });
 
-        $$('focus_width').addEventListener('change', () => {
+        $$('focus_width').addEventListener('input', () => {
           THREE_APP.material.uniforms.focusWidth.value = parseFloat($$('focus_width').value);
           THREE_APP.renderTHREE();
         });
 
-        $$('focus_outblur').addEventListener('change', () => {
+        $$('focus_outblur').addEventListener('input', () => {
           THREE_APP.material.uniforms.blured.value = parseFloat($$('focus_outblur').value);
           THREE_APP.renderTHREE();
         });
@@ -412,6 +435,12 @@
         $$('focus_debug').addEventListener('change', () => {
           THREE_APP.material.uniforms.debug.value = !!$$('focus_debug').checked;
           console.log( THREE_APP.material.uniforms.debug.value );
+          THREE_APP.renderTHREE();
+        });
+
+        $$('show_depth').addEventListener('change', () => {
+          THREE_APP.material.uniforms.showDepth.value = !!$$('show_depth').checked;
+          console.log( THREE_APP.material.uniforms.showDepth.value );
           THREE_APP.renderTHREE();
         });
 
